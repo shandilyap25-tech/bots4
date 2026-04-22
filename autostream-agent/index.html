@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoStream Agent</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -50,6 +51,10 @@
             word-wrap: break-word;
             line-height: 1.4;
         }
+        .message p { margin: 0 0 8px 0; }
+        .message p:last-child { margin: 0; }
+        .message ul, .message ol { margin: 0 0 8px 0; padding-left: 20px; }
+        .message ul:last-child, .message ol:last-child { margin: 0; }
         .user-message {
             background: #4F46E5;
             color: white;
@@ -114,6 +119,9 @@
     </div>
 
     <script>
+        // Generate a unique session ID for this browser tab
+        const sessionId = "sess-" + Math.random().toString(36).substring(2, 15);
+
         async function sendMessage() {
             const inputField = document.getElementById("user-input");
             const message = inputField.value.trim();
@@ -131,7 +139,10 @@
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ 
+                        message: message,
+                        session_id: sessionId
+                    })
                 });
                 
                 const data = await response.json();
@@ -155,7 +166,13 @@
             const messagesDiv = document.getElementById("chat-messages");
             const messageDiv = document.createElement("div");
             messageDiv.className = "message " + className;
-            messageDiv.innerText = text;
+            
+            // Render Markdown for bot messages, plain text for user messages
+            if (className.includes("bot-message")) {
+                messageDiv.innerHTML = marked.parse(text);
+            } else {
+                messageDiv.innerText = text;
+            }
             
             const id = "msg-" + Date.now();
             messageDiv.id = id;
