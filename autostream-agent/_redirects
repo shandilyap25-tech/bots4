@@ -1,0 +1,3 @@
+# SPA fallback routing for Netlify, Cloudflare Pages, etc.
+# Redirects all traffic to index.html to fix 404s on page refresh
+/*    /index.html   200

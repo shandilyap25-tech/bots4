@@ -5,13 +5,16 @@ Built with LangGraph for state management and agentic control flow
 
 import json
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 from typing import Any, Dict, List, Optional, Literal
 from dataclasses import dataclass, field
 from datetime import datetime
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
-from langchain_core.language_model import BaseLangModel
-from langchain_openai import ChatOpenAI
+from langchain_core.language_model import BaseLangModel  # pyright: ignore[reportMissingImports]
+from langchain_openai import ChatOpenAI  # pyright: ignore[reportMissingModuleSource]
 from pydantic import BaseModel, Field
 from langgraph.graph import StateGraph, END
 from langgraph.types import StreamWriter
@@ -168,19 +171,16 @@ def mock_lead_capture(name: str, email: str, platform: str) -> Dict[str, Any]:
 # ============================================================================
 
 def initialize_llm() -> BaseLangModel:
-    """Initialize the LLM - uses Claude 3 Haiku by default"""
-    # You can switch between models by changing the model parameter
-    # Options: gpt-4o-mini, gemini-1.5-flash, claude-3-haiku
+    """Initialize the LLM - uses Gemini 1.5 Flash"""
     
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY not set. Please set your API key.")
+        raise ValueError("GOOGLE_API_KEY not set. Please set your API key.")
     
-    # Using Claude 3 Haiku (can be changed to gpt-4o-mini or gemini-1.5-flash)
-    from langchain_anthropic import ChatAnthropic
-    return ChatAnthropic(
-        model="claude-3-5-haiku-20241022",
-        api_key=api_key,
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    return ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash",
+        google_api_key=api_key,
         temperature=0.7
     )
 
@@ -258,7 +258,7 @@ class AutoStreamAgent:
                 classifier = self.llm.with_structured_output(IntentClassification)
                 
                 # Provide a bit of context for better classification
-                recent_history = [msg.content for msg in state["messages"][-4:-1] if isinstance(msg, HumanMessage)]
+                recent_history = [str(msg.content) for msg in state["messages"][-4:-1] if isinstance(msg, HumanMessage)]
                 context = "\n".join(recent_history)
                 prompt = f"Previous messages:\n{context}\n\nCurrent message: {last_message.content}\n\nClassify the intent of the current message."
                 
@@ -298,7 +298,7 @@ class AutoStreamAgent:
             # Extract lead info if present in message
             last_message = state["messages"][-2]  # Get user message before agent response
             if isinstance(last_message, HumanMessage):
-                state = self._extract_lead_info(state, last_message.content)
+                    state = self._extract_lead_info(state, str(last_message.content))
         return state
     
     def collect_lead_info_node(self, state: AgentState) -> AgentState:
@@ -349,7 +349,7 @@ class AutoStreamAgent:
         """Check if all lead info has been collected"""
         last_message = state["messages"][-1]  # Last user message
         if isinstance(last_message, HumanMessage):
-            state = self._extract_lead_info(state, last_message.content)
+            state = self._extract_lead_info(state, str(last_message.content))
         
         lead = LeadInfo(
             name=state["user_name"],

@@ -6,9 +6,16 @@
     <title>AutoStream Agent</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+        :root {
+            /* Change these hex codes to match your company's branding */
+            --brand-primary: #4F46E5;
+            --brand-hover: #4338CA;
+            --bg-color: #f4f4f9;
+            --bot-msg-bg: #f1f1f1;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: #f4f4f9;
+            background-color: var(--bg-color);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -28,13 +35,29 @@
             overflow: hidden;
         }
         .chat-header {
-            background: #4F46E5;
+            background: var(--brand-primary);
             color: white;
             padding: 20px;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-weight: bold;
             font-size: 1.2em;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .clear-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .clear-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
         .chat-messages {
             flex: 1;
@@ -56,13 +79,13 @@
         .message ul, .message ol { margin: 0 0 8px 0; padding-left: 20px; }
         .message ul:last-child, .message ol:last-child { margin: 0; }
         .user-message {
-            background: #4F46E5;
+            background: var(--brand-primary);
             color: white;
             align-self: flex-end;
             border-bottom-right-radius: 4px;
         }
         .bot-message {
-            background: #f1f1f1;
+            background: var(--bot-msg-bg);
             color: #333;
             align-self: flex-start;
             border-bottom-left-radius: 4px;
@@ -83,10 +106,14 @@
             transition: border-color 0.2s;
         }
         .chat-input input:focus {
-            border-color: #4F46E5;
+            border-color: var(--brand-primary);
+        }
+        .chat-input input:disabled {
+            background: #f9f9f9;
+            cursor: not-allowed;
         }
         .chat-input button {
-            background: #4F46E5;
+            background: var(--brand-primary);
             color: white;
             border: none;
             padding: 0 20px;
@@ -97,18 +124,39 @@
             transition: background 0.2s;
         }
         .chat-input button:hover {
-            background: #4338CA;
+            background: var(--brand-hover);
         }
-        .typing-indicator {
-            font-style: italic;
-            color: #888;
-            font-size: 0.9em;
+        .chat-input button:disabled {
+            background: #a5a5a5;
+            cursor: not-allowed;
+        }
+        .typing-dots {
+            display: flex;
+            align-items: center;
+            height: 20px;
+            gap: 4px;
+        }
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            background-color: #888;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
         }
     </style>
 </head>
 <body>
     <div class="chat-container">
-        <div class="chat-header">AutoStream Sales Agent</div>
+        <div class="chat-header">
+            <span>AutoStream Sales Agent</span>
+            <button class="clear-btn" onclick="clearChat()">Clear</button>
+        </div>
         <div class="chat-messages" id="chat-messages">
             <div class="message bot-message">Hi there! 👋 I'm the AutoStream assistant. How can I help you with your video editing needs today?</div>
         </div>
@@ -120,7 +168,20 @@
 
     <script>
         // Generate a unique session ID for this browser tab
-        const sessionId = "sess-" + Math.random().toString(36).substring(2, 15);
+        let sessionId = "sess-" + Math.random().toString(36).substring(2, 15);
+
+        // Handle SPA routing for 404s
+        window.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            if (currentPath !== "/" && currentPath !== "/index.html") {
+                document.getElementById("chat-messages").innerHTML = "";
+                const errorText = `Oops! 🚧 It looks like you've navigated to a page that doesn't exist (\`${currentPath}\`).\n\nClick here to return home`;
+                addMessage(errorText, "bot-message");
+                
+                document.getElementById("user-input").disabled = true;
+                document.querySelector(".chat-input button").disabled = true;
+            }
+        });
 
         async function sendMessage() {
             const inputField = document.getElementById("user-input");
@@ -132,11 +193,16 @@
             inputField.value = "";
 
             // 2. Add loading/typing indicator
-            const loadingId = addMessage("Typing...", "bot-message typing-indicator");
+            const loadingId = addMessage('<div class="typing-dots"><span></span><span></span><span></span></div>', "bot-message");
 
             try {
-                // 3. Send data to your Python backend (/api/chat)
-                const response = await fetch('/api/chat', {
+                // Dynamically select backend URL. Use relative path if hosted together on Render.
+                // If frontend is on Vercel, replace the URL below with your actual Render backend URL.
+                const isVercel = window.location.hostname.includes("vercel.app");
+                const backendUrl = isVercel ? "https://<YOUR-RENDER-APP-NAME>.onrender.com" : ""; 
+
+                console.log(`[Debug] Sending request to: ${backendUrl}/api/chat`);
+                const response = await fetch(`${backendUrl}/api/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -146,20 +212,53 @@
                 });
                 
                 const data = await response.json();
+                console.log("[Debug] API Response:", data);
                 
+                // Calculate a natural typing delay (e.g., 15ms per character, capped between 500ms and 2500ms)
+                const typingDelay = data.response ? Math.min(Math.max(data.response.length * 15, 500), 2500) : 500;
+                await new Promise(resolve => setTimeout(resolve, typingDelay));
+
                 // 4. Remove loading indicator and show the bot's actual response
                 document.getElementById(loadingId).remove();
                 
                 if (data.response) {
                     addMessage(data.response, "bot-message");
                 } else if (data.error) {
+                    console.error("[Error] API returned an error:", data.error);
                     addMessage("Error: " + data.error, "bot-message");
                 }
                 
             } catch (error) {
                 document.getElementById(loadingId).remove();
+                console.error("[Error] Fetch Request Failed:", error);
                 addMessage("Error connecting to the server. Make sure your Python backend is running.", "bot-message");
             }
+        }
+
+        async function clearChat() {
+            // Clear backend session
+            try {
+                const isVercel = window.location.hostname.includes("vercel.app");
+                const backendUrl = isVercel ? "https://<YOUR-RENDER-APP-NAME>.onrender.com" : ""; 
+                
+                await fetch(`${backendUrl}/api/clear`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+            } catch (e) {
+                console.error("[Error] Failed to clear backend session:", e);
+            }
+
+            // Reset session ID to ensure a completely fresh state
+            sessionId = "sess-" + Math.random().toString(36).substring(2, 15);
+
+            // Reset UI
+            document.getElementById("chat-messages").innerHTML = '<div class="message bot-message">Hi there! 👋 I\'m the AutoStream assistant. How can I help you with your video editing needs today?</div>';
+            
+            // Re-enable inputs in case they were disabled by the 404 state
+            document.getElementById("user-input").disabled = false;
+            document.querySelector(".chat-input button").disabled = false;
         }
 
         function addMessage(text, className) {

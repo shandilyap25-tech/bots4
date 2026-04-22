@@ -8,7 +8,7 @@ import os
 import tempfile
 
 import sys
-sys.path.insert(0, '/Users/acer/Downloads/bot/autostream-agent')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from agent import KnowledgeBaseManager
 

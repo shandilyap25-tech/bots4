@@ -4,132 +4,68 @@ Unit tests for Intent Detection
 
 import pytest
 from langchain_core.messages import HumanMessage, AIMessage
+from unittest.mock import MagicMock
+import os
 
 import sys
-sys.path.insert(0, '/Users/acer/Downloads/bot/autostream-agent')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from agent import IntentDetector
+from agent import AutoStreamAgent, IntentClassification
 
 
 class TestIntentDetection:
-    """Test suite for intent detection"""
+    """Test suite for LLM-based intent detection"""
     
     @pytest.fixture
-    def detector(self):
-        return IntentDetector()
+    def agent_with_mock_llm(self):
+        # Provide a dummy key to bypass initialization checks
+        os.environ["GOOGLE_API_KEY"] = "mock_key_for_testing"
+        agent = AutoStreamAgent()
+        
+        # Mock the with_structured_output chain
+        mock_chain = MagicMock()
+        agent.llm = MagicMock()
+        agent.llm.with_structured_output.return_value = mock_chain
+        return agent, mock_chain
     
-    # Test Casual Greeting Detection
-    def test_casual_greeting_simple(self, detector):
-        """Test detection of simple greetings"""
-        messages = [HumanMessage(content="Hi there")]
-        intent = detector.detect_intent("Hi", messages)
-        assert intent == "casual_greeting"
-    
-    def test_casual_greeting_hello(self, detector):
-        """Test 'hello' greeting"""
-        messages = []
-        intent = detector.detect_intent("hello", messages)
-        assert intent == "casual_greeting"
-    
-    def test_casual_greeting_thank_you(self, detector):
-        """Test 'thank you' greeting"""
-        messages = []
-        intent = detector.detect_intent("Thanks for the info", messages)
-        assert intent == "casual_greeting"
-    
-    # Test Product Inquiry Detection
-    def test_product_inquiry_pricing(self, detector):
-        """Test detection of pricing inquiry"""
-        messages = []
-        intent = detector.detect_intent("What is your pricing?", messages)
-        assert intent == "product_inquiry"
-    
-    def test_product_inquiry_features(self, detector):
-        """Test detection of feature inquiry"""
-        messages = []
-        intent = detector.detect_intent("Can you tell me about your features?", messages)
-        assert intent == "product_inquiry"
-    
-    def test_product_inquiry_how_does(self, detector):
-        """Test detection of 'how does' inquiry"""
-        messages = []
-        intent = detector.detect_intent("How does your video editor work?", messages)
-        assert intent == "product_inquiry"
-    
-    def test_product_inquiry_plans(self, detector):
-        """Test detection of plan inquiry"""
-        messages = []
-        intent = detector.detect_intent("What plans do you offer?", messages)
-        assert intent == "product_inquiry"
-    
-    # Test High-Intent Lead Detection
-    def test_high_intent_ready_to_try(self, detector):
-        """Test detection of 'ready to try' high-intent"""
-        messages = []
-        intent = detector.detect_intent("I'm ready to try your service", messages)
-        assert intent == "high_intent_lead"
-    
-    def test_high_intent_want_to_sign_up(self, detector):
-        """Test detection of sign-up intent"""
-        messages = []
-        intent = detector.detect_intent("I want to sign up for the Pro plan", messages)
-        assert intent == "high_intent_lead"
-    
-    def test_high_intent_get_started(self, detector):
-        """Test detection of 'get started' intent"""
-        messages = []
-        intent = detector.detect_intent("Let's get started!", messages)
-        assert intent == "high_intent_lead"
-    
-    def test_high_intent_where_to_subscribe(self, detector):
-        """Test detection of subscription ready intent"""
-        messages = []
-        intent = detector.detect_intent("Where can I subscribe?", messages)
-        assert intent == "high_intent_lead"
-    
-    def test_high_intent_excited_to_try(self, detector):
-        """Test detection of excited/positive signals"""
-        messages = []
-        intent = detector.detect_intent("I'm excited to try your Pro plan", messages)
-        assert intent == "high_intent_lead"
-    
-    # Test Context-Aware Detection
-    def test_context_aware_detection(self, detector):
-        """Test that context from conversation history affects intent"""
-        # Simulate previous product discussion
-        messages = [
-            AIMessage(content="Our Pro plan costs $79/month with 4K resolution"),
-            HumanMessage(content="That sounds great")
-        ]
-        intent = detector.detect_intent("That sounds great", messages)
-        # Should recognize product context
-        assert intent in ["product_inquiry", "casual_greeting"]
-    
-    # Test Edge Cases
-    def test_empty_message(self, detector):
-        """Test handling of empty messages"""
-        messages = []
-        intent = detector.detect_intent("", messages)
-        assert intent in ["casual_greeting", "product_inquiry"]
-    
-    def test_special_characters(self, detector):
-        """Test handling of special characters"""
-        messages = []
-        intent = detector.detect_intent("Hi!!!!! 😀", messages)
-        assert intent == "casual_greeting"
-    
-    def test_lowercase_conversion(self, detector):
-        """Test that detection works with uppercase"""
-        messages = []
-        intent = detector.detect_intent("TELL ME ABOUT YOUR PRICING", messages)
-        assert intent == "product_inquiry"
-    
-    def test_mixed_intent_signals(self, detector):
-        """Test message with multiple intent signals (high-intent takes priority)"""
-        messages = []
-        intent = detector.detect_intent("Hi, I want to sign up for your service", messages)
-        # High-intent should take priority
-        assert intent == "high_intent_lead"
+    def test_intent_detection_high_intent(self, agent_with_mock_llm):
+        """Test detection of high intent via LLM"""
+        agent, mock_chain = agent_with_mock_llm
+        
+        # Setup mock to return a high-intent classification
+        mock_chain.invoke.return_value = IntentClassification(intent="high_intent_lead")
+        
+        state = {"messages": [HumanMessage(content="I want to sign up!")], "intent": None}
+        new_state = agent.intent_detection_node(state)
+        
+        assert new_state["intent"] == "high_intent_lead"
+        mock_chain.invoke.assert_called_once()
+
+    def test_intent_detection_casual_greeting(self, agent_with_mock_llm):
+        """Test detection of casual greeting via LLM"""
+        agent, mock_chain = agent_with_mock_llm
+        
+        # Setup mock to return a casual_greeting classification
+        mock_chain.invoke.return_value = IntentClassification(intent="casual_greeting")
+        
+        state = {"messages": [HumanMessage(content="Hello there!")], "intent": None}
+        new_state = agent.intent_detection_node(state)
+        
+        assert new_state["intent"] == "casual_greeting"
+        mock_chain.invoke.assert_called_once()
+
+    def test_intent_detection_product_inquiry(self, agent_with_mock_llm):
+        """Test detection of product inquiry via LLM"""
+        agent, mock_chain = agent_with_mock_llm
+        
+        # Setup mock to return a product_inquiry classification
+        mock_chain.invoke.return_value = IntentClassification(intent="product_inquiry")
+        
+        state = {"messages": [HumanMessage(content="How much does it cost?")], "intent": None}
+        new_state = agent.intent_detection_node(state)
+        
+        assert new_state["intent"] == "product_inquiry"
+        mock_chain.invoke.assert_called_once()
 
 
 if __name__ == "__main__":

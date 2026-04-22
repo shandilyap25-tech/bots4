@@ -5,9 +5,10 @@ Unit tests for Lead Capture System
 import pytest
 import re
 from unittest.mock import patch, MagicMock
+import os
 
 import sys
-sys.path.insert(0, '/Users/acer/Downloads/bot/autostream-agent')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from agent import mock_lead_capture, LeadInfo
 
