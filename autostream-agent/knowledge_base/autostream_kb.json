@@ -1,0 +1,75 @@
+{
+  "company": {
+    "name": "AutoStream",
+    "tagline": "Automated video editing tools for content creators",
+    "website": "https://www.autostream.io",
+    "support_email": "support@autostream.io"
+  },
+  "pricing": {
+    "basic_plan": {
+      "name": "Basic Plan",
+      "price_monthly": 29,
+      "price_yearly": 290,
+      "videos_per_month": 10,
+      "resolution": "720p",
+      "ai_captions": false,
+      "priority_support": false,
+      "description": "Perfect for beginners and casual creators"
+    },
+    "pro_plan": {
+      "name": "Pro Plan",
+      "price_monthly": 79,
+      "price_yearly": 790,
+      "videos_per_month": "Unlimited",
+      "resolution": "4K",
+      "ai_captions": true,
+      "priority_support": true,
+      "support_availability": "24/7",
+      "description": "Ideal for professional creators and content studios"
+    }
+  },
+  "features": {
+    "common": [
+      "Drag-and-drop video editor",
+      "AI-powered scene detection",
+      "Automatic subtitles (Basic: limited, Pro: unlimited)",
+      "Background removal",
+      "Music library with 10,000+ tracks"
+    ],
+    "pro_exclusive": [
+      "4K export quality",
+      "Unlimited video exports",
+      "Priority customer support (24/7)",
+      "Advanced color grading",
+      "Custom branding options",
+      "API access for integrations"
+    ]
+  },
+  "policies": {
+    "refund_policy": {
+      "duration_days": 7,
+      "description": "No refunds after 7 days of purchase"
+    },
+    "support": {
+      "basic_support": "Email support only",
+      "pro_support": "24/7 priority support available",
+      "response_time_pro": "< 2 hours"
+    },
+    "trial": {
+      "available": true,
+      "duration_days": 7,
+      "features": "Full access to Pro features"
+    },
+    "cancellation": {
+      "anytime": true,
+      "no_questions_asked": true
+    }
+  },
+  "use_cases": {
+    "youtube_creators": "Perfect for YouTube channel optimization with unlimited exports",
+    "instagram_creators": "Create vertical videos optimized for Instagram Reels",
+    "tiktok_creators": "Quick editing with AI captions for TikTok growth",
+    "businesses": "Professional video content for marketing campaigns",
+    "educators": "Course content creation with automatic subtitles"
+  }
+}
