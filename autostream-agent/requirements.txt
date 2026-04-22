@@ -16,6 +16,9 @@ python-dotenv>=1.0.0
 pydantic>=2.0.0
 typing-extensions>=4.5.0
 
+# Web Framework for Vercel Serverless
+flask>=3.0.0
+
 # Optional: For enhanced RAG (vector embeddings)
 # Uncomment if you want to implement semantic search
 # faiss-cpu>=1.7.0
